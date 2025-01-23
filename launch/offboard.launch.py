@@ -44,7 +44,10 @@ def launch_setup(context):
             parameters=[{
                 'vehicle_name': namespace,
                 'update_rate': vehicle.get('update_rate', 100.0),
-                'target_system': vehicle.get('target_system', 1)
+                'target_system': vehicle.get('target_system', 1),
+                'position.x': vehicle['position']['x'],
+                'position.y': vehicle['position']['y'],
+                'position.z': vehicle['position']['z'],
             }],
             remappings=[
                 # (f'fmu/in/offboard_control_mode', f'{namespace}/fmu/in/offboard_control_mode'),
