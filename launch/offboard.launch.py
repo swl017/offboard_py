@@ -48,6 +48,7 @@ def launch_setup(context):
                 'position.x': vehicle['position']['x'],
                 'position.y': vehicle['position']['y'],
                 'position.z': vehicle['position']['z'],
+                'position.yaw_deg': vehicle['position']['yaw_deg'],
             }],
             remappings=[
                 # (f'fmu/in/offboard_control_mode', f'{namespace}/fmu/in/offboard_control_mode'),

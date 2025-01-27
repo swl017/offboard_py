@@ -27,6 +27,7 @@ class OffboardControl(Node):
                 ('position.x', 0.0),
                 ('position.y', 0.0),
                 ('position.z', 0.0),
+                ('position.yaw_deg', 0.0),
             ]
         )
         
@@ -38,6 +39,7 @@ class OffboardControl(Node):
         self.waypoint.x = self.get_parameter('position.x').value
         self.waypoint.y = self.get_parameter('position.y').value
         self.waypoint.z = self.get_parameter('position.z').value
+        self.waypoint_yaw_deg = self.get_parameter('position.yaw_deg').value
         
         # Log parameter values and indicate if using defaults
         self.get_logger().info(f'Initialized offboard control with parameters:')
@@ -74,7 +76,9 @@ class OffboardControl(Node):
             NavSatFix, 'mavros/global_position/global', qos_profile)
         self.vehicle_imu_publisher = self.create_publisher(
             Imu, 'mavros/imu/data', qos_profile)
-
+        self.initial_waypoint_publisher = self.create_publisher(
+            Odometry, 'initial_waypoint', qos_profile)
+        
         # Create subscribers
         self.vehicle_global_position_subscriber = self.create_subscription(
             VehicleGlobalPosition, 'fmu/out/vehicle_global_position', self.vehicle_global_position_callback, qos_profile)
@@ -282,6 +286,21 @@ class OffboardControl(Node):
         """Callback function for the timer."""
         self.publish_offboard_control_heartbeat_signal('velocity')
 
+        waypoint = Odometry()
+        waypoint.header.stamp.sec = int(self.get_clock().now().nanoseconds / 1e9)
+        waypoint.header.stamp.nanosec = int(self.get_clock().now().nanoseconds % 1e9)
+        waypoint.header.frame_id = 'common_frame'
+        waypoint.child_frame_id = 'waypoint'
+        waypoint.pose.pose.position.x = self.waypoint.x
+        waypoint.pose.pose.position.y = self.waypoint.y
+        waypoint.pose.pose.position.z = self.waypoint.z
+        q = Rotation.from_euler('xyz', [0.0, 0.0, self.waypoint_yaw_deg], degrees=True).as_quat()
+        waypoint.pose.pose.orientation.x = q[0]
+        waypoint.pose.pose.orientation.y = q[1]
+        waypoint.pose.pose.orientation.z = q[2]
+        waypoint.pose.pose.orientation.w = q[3]
+        self.initial_waypoint_publisher.publish(waypoint)
+
         # Start after FC is initialized
         if self.vehicle_local_position is None \
             or self.vehicle_global_position is None \
@@ -317,11 +336,13 @@ class OffboardControl(Node):
         elif not self.pass_vehicle_cmd_vel:
             msg = TrajectorySetpoint()
             msg.position = [self.waypoint.y, self.waypoint.x, -self.waypoint.z]
+            msg.yaw = -self.waypoint_yaw_deg / 180.0 * np.pi # (90 degree)
             msg.velocity = [float('nan'), float('nan'), float('nan')]
-            msg.yawspeed = 0.0
+            msg.yawspeed = float('nan')
             msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
             self.trajectory_setpoint_publisher.publish(msg)
             dist = np.linalg.norm(self.vehicle_odometry.position - msg.position)
+            # yaw_diff_deg = 
             print(f"dist = {dist}")
             if dist < 2.0:
                 self.pass_vehicle_cmd_vel = True
