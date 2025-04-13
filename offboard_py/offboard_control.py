@@ -344,8 +344,11 @@ class OffboardControl(Node):
             dist = np.linalg.norm(self.vehicle_odometry.position - msg.position)
             # yaw_diff_deg = 
             print(f"dist = {dist}")
-            if dist < 2.0:
-                self.pass_vehicle_cmd_vel = True
+            euler = Rotation.from_quat(self.vehicle_odometry.q).as_euler('xyz', degrees=True)
+            print(f"yaw_diff = {euler[0] - 180.0 - self.waypoint_yaw_deg}")
+            if dist < 2.0 and np.abs(euler[0] - 180.0 - self.waypoint_yaw_deg) < 0.1:
+                # self.pass_vehicle_cmd_vel = True
+                pass
 
 
         if self.offboard_setpoint_counter < 11:
