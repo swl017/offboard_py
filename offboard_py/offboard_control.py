@@ -142,7 +142,7 @@ class OffboardControl(Node):
         nav.position_covariance[0] = vehicle_global_position.eph * vehicle_global_position.eph / 2
         nav.position_covariance[1] = vehicle_global_position.eph * vehicle_global_position.eph / 2
         nav.position_covariance[2] = vehicle_global_position.epv * vehicle_global_position.epv
-        self.vehicle_global_position_publisher.publish(nav)
+        # self.vehicle_global_position_publisher.publish(nav)
 
     def vehicle_odometry_callback(self, vehicle_odometry):
         """Callback function for vehicle_odometry topic subscriber."""
@@ -181,7 +181,7 @@ class OffboardControl(Node):
         odom.twist.covariance[0] = float(vehicle_odometry.velocity_variance[1])
         odom.twist.covariance[7] = float(vehicle_odometry.velocity_variance[0])
         odom.twist.covariance[14] = float(vehicle_odometry.velocity_variance[2])
-        self.vehicle_odom_publisher.publish(odom)
+        # self.vehicle_odom_publisher.publish(odom)
 
         imu = Imu()
         imu.header.stamp.sec = int(vehicle_odometry.timestamp * 1e-9)
@@ -197,7 +197,7 @@ class OffboardControl(Node):
         imu.angular_velocity.x = float(vehicle_odometry.angular_velocity[1])
         imu.angular_velocity.y = float(vehicle_odometry.angular_velocity[0])
         imu.angular_velocity.z = float(-vehicle_odometry.angular_velocity[2])
-        self.vehicle_imu_publisher.publish(imu)
+        # self.vehicle_imu_publisher.publish(imu)
 
     def vehicle_status_callback(self, vehicle_status):
         """Callback function for vehicle_status topic subscriber."""
@@ -346,7 +346,8 @@ class OffboardControl(Node):
             print(f"dist = {dist}")
             euler = Rotation.from_quat(self.vehicle_odometry.q).as_euler('xyz', degrees=True)
             print(f"yaw_diff = {euler[0] - 180.0 - self.waypoint_yaw_deg}")
-            if dist < 2.0 and np.abs(euler[0] - 180.0 - self.waypoint_yaw_deg) < 0.1:
+            if dist < 2.0 and (np.abs(euler[0] - 180.0 - self.waypoint_yaw_deg) < 10.0 or
+                np.abs(euler[0] - 180.0 - self.waypoint_yaw_deg) > 350.0):
                 # self.pass_vehicle_cmd_vel = True
                 pass
 
