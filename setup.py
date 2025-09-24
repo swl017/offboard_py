@@ -25,7 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'offboard_control = offboard_py.offboard_control:main',
-            'thrust_and_rate_control = offboard_py.thrust_and_rate_control:main',
+            'thrust_and_rate_control = offboard_py.thrust_and_rate_control_ros2:main',
         ],
     },
 )

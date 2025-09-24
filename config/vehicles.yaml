@@ -2,43 +2,43 @@ vehicles:
   - namespace: "px4_1"
     target_system: 2
     position:
-      x: -40.0
+      x: -15.0
       y: 0.0
-      z: 10.0
+      z: 15.0
       yaw_deg: -90.0
   - namespace: "px4_2"
     target_system: 3
     position:
       x: 0.0
-      y: -40.0
-      z: 10.0
+      y: -15.0
+      z: 15.0
       yaw_deg: 0.0
   - namespace: "px4_3"
     target_system: 4
     position:
-      x: -40.0
-      y: -40.0
+      x: -15.0
+      y: -0.0
       z: 8.0
       yaw_deg: -45.0
-  # - namespace: "px4_4"
-  #   target_system: 5
-  #   position:
-  #     x: 0.0
-  #     y: 0.0
-  #     z: 9.0
-  #     yaw_deg: 0.0
-  # - namespace: "px4_5"
-  #   target_system: 6
-  #   position:
-  #     x: 2.0
-  #     y: 1.0
-  #     z: 11.0
-  #     yaw_deg: 0.0
-  # - namespace: "px4_6"
-  #   target_system: 7
-  #   position:
-  #     x: 3.0
-  #     y: 1.0
-  #     z: 12.0
-  #     yaw_deg: 0.0
+  - namespace: "px4_4"
+    target_system: 5
+    position:
+      x: 0.0
+      y: 0.0
+      z: 11.0
+      yaw_deg: 0.0
+  - namespace: "px4_5"
+    target_system: 6
+    position:
+      x: 2.0
+      y: 1.0
+      z: 1.0
+      yaw_deg: 0.0
+  - namespace: "px4_6"
+    target_system: 7
+    position:
+      x: 3.0
+      y: 1.0
+      z: 1.0
+      yaw_deg: 0.0
 
