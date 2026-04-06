@@ -1,0 +1,32 @@
+{
+  "features": [
+    {
+      "id": "offboard_control",
+      "name": "Offboard position/velocity control",
+      "status": "done",
+      "notes": "Full PX4 uORB interface with NED/ENU frame conversion, multi-agent support",
+      "last_updated": "2026-03-24"
+    },
+    {
+      "id": "thrust_and_rate_control",
+      "name": "Attitude and thrust control",
+      "status": "done",
+      "notes": "PID-based stabilizing controller at 250 Hz via MAVROS",
+      "last_updated": "2026-03-24"
+    },
+    {
+      "id": "multi_agent_launch",
+      "name": "Multi-agent parametric launch",
+      "status": "done",
+      "notes": "Spawns per-vehicle nodes from vehicles.yaml config",
+      "last_updated": "2026-03-24"
+    },
+    {
+      "id": "px4_position_control",
+      "name": "PX4 position control abstraction",
+      "status": "done",
+      "notes": "Python port of PX4 position controller with PID, anti-windup, tilt limiting",
+      "last_updated": "2026-03-24"
+    }
+  ]
+}
