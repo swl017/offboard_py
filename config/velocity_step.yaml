@@ -1,0 +1,10 @@
+test_name: velocity_step
+axes: [x, y, z]
+speeds: [3.0, 5.0]
+hold_duration: 5.0       # seconds at each velocity step
+settle_duration: 5.0     # seconds at zero between steps
+altitude_margin: 10.0    # minimum altitude headroom for z-axis steps (meters)
+drift_limit: 5.0         # trigger drift correction beyond this radius (meters)
+drift_return_threshold: 1.0  # resume normal after returning within this (meters)
+drift_kp: 1.0            # P gain for drift correction
+drift_vel_clamp: 2.0     # max drift correction velocity (m/s)

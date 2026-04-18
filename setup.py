@@ -7,7 +7,7 @@ package_name = 'offboard_py'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name],
+    packages=[package_name, package_name + '.latency_tools'],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -28,6 +28,11 @@ setup(
             'thrust_and_rate_control = offboard_py.thrust_and_rate_control_ros2:main',
             'sysid_node = offboard_py.sysid_node:main',
             'sysid_analyze = offboard_py.sysid_analyze:main',
+            'imu_latency = offboard_py.latency_tools.imu_latency:main',
+            'detector_latency_bench = offboard_py.latency_tools.detector_latency_bench:main',
+            'image_transport_latency = offboard_py.latency_tools.image_transport_latency:main',
+            'datalink_latency_ping = offboard_py.latency_tools.datalink_latency_ping:main',
+            'flight_test_velocity_step = offboard_py.flight_test_velocity_step:main',
         ],
     },
 )

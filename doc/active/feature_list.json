@@ -27,6 +27,13 @@
       "status": "done",
       "notes": "Python port of PX4 position controller with PID, anti-windup, tilt limiting",
       "last_updated": "2026-03-24"
+    },
+    {
+      "id": "flight_test_harness",
+      "name": "Reusable offboard flight test harness",
+      "status": "in-progress",
+      "notes": "Base class (FlightTestHarness) + velocity step A2. MAVROS-only, YAML-driven sequences, drift guard, bag recording.",
+      "last_updated": "2026-04-13"
     }
   ]
 }

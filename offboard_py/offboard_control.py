@@ -79,15 +79,24 @@ class OffboardControl(Node):
         self.initial_waypoint_publisher = self.create_publisher(
             Odometry, 'initial_waypoint', qos_profile)
         
+        # QoS for PX4 fmu/out subscribers — use VOLATILE to avoid FastDDS
+        # fixed-buffer pre-allocation that rejects payloads larger than expected.
+        qos_sub = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=1
+        )
+
         # Create subscribers
         self.vehicle_global_position_subscriber = self.create_subscription(
-            VehicleGlobalPosition, 'fmu/out/vehicle_global_position', self.vehicle_global_position_callback, qos_profile)
+            VehicleGlobalPosition, 'fmu/out/vehicle_global_position', self.vehicle_global_position_callback, qos_sub)
         self.vehicle_local_position_subscriber = self.create_subscription(
-            VehicleLocalPosition, 'fmu/out/vehicle_local_position', self.vehicle_local_position_callback, qos_profile)
+            VehicleLocalPosition, 'fmu/out/vehicle_local_position', self.vehicle_local_position_callback, qos_sub)
         self.vehicle_odometry_subscriber = self.create_subscription(
-            VehicleOdometry, 'fmu/out/vehicle_odometry', self.vehicle_odometry_callback, qos_profile)
+            VehicleOdometry, 'fmu/out/vehicle_odometry', self.vehicle_odometry_callback, qos_sub)
         self.vehicle_status_subscriber = self.create_subscription(
-            VehicleStatus, 'fmu/out/vehicle_status', self.vehicle_status_callback, qos_profile)
+            VehicleStatus, 'fmu/out/vehicle_status', self.vehicle_status_callback, qos_sub)
         self.vehicle_cmd_vel_subscriber = self.create_subscription(
             TwistStamped, 'cmd_vel', self.vehicle_cmd_vel_callback, qos_profile_durability)
 
@@ -238,8 +247,8 @@ class OffboardControl(Node):
     def publish_offboard_control_heartbeat_signal(self, mode: str) -> None:
         """Publish the offboard control mode."""
         msg = OffboardControlMode()
-        msg.position = True
-        msg.velocity = False
+        msg.position = (mode == 'position')
+        msg.velocity = (mode == 'velocity')
         msg.acceleration = False
         msg.attitude = False
         msg.body_rate = False
@@ -284,7 +293,6 @@ class OffboardControl(Node):
 
     def timer_callback(self) -> None:
         """Callback function for the timer."""
-        self.publish_offboard_control_heartbeat_signal('velocity')
 
         waypoint = Odometry()
         waypoint.header.stamp.sec = int(self.get_clock().now().nanoseconds / 1e9)
@@ -305,18 +313,34 @@ class OffboardControl(Node):
         if self.vehicle_local_position is None \
             or self.vehicle_global_position is None \
             or self.vehicle_status is None:
+            self.publish_offboard_control_heartbeat_signal('velocity')
             return
-        
+
+        # PX4 requires heartbeat + setpoint streaming before accepting offboard mode.
+        # Stream for at least 10 ticks (~100ms at 100Hz) before engaging.
+        if self.offboard_setpoint_counter < 11:
+            self.publish_offboard_control_heartbeat_signal('velocity')
+            # Publish a hold-position setpoint so PX4 has a valid setpoint
+            msg = TrajectorySetpoint()
+            msg.position = [float('nan'), float('nan'), float('nan')]
+            msg.velocity = [0.0, 0.0, 0.0]
+            msg.yawspeed = 0.0
+            msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
+            self.trajectory_setpoint_publisher.publish(msg)
+            self.offboard_setpoint_counter += 1
+            return
+
         if self.vehicle_status.arming_state == self.vehicle_status.ARMING_STATE_STANDBY:
-        #if self.offboard_setpoint_counter == 10:
             self.engage_offboard_mode()
             self.arm()
 
-        if self.vehicle_local_position.z > self.takeoff_height \
+        # Determine if still in takeoff phase (climbing to target height)
+        taking_off = self.vehicle_local_position.z > self.takeoff_height \
             and self.vehicle_status.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD \
-            and not self.pass_vehicle_cmd_vel:
-            # self.publish_position_setpoint(0.0, 0.0, self.takeoff_height)
-            """Publish the trajectory setpoint."""
+            and not self.pass_vehicle_cmd_vel
+
+        if taking_off:
+            self.publish_offboard_control_heartbeat_signal('velocity')
             msg = TrajectorySetpoint()
             msg.position = [float('nan'), float('nan'), float('nan')]
             msg.velocity = [0.0, 0.0, -10.0]
@@ -324,16 +348,8 @@ class OffboardControl(Node):
             msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
             self.trajectory_setpoint_publisher.publish(msg)
 
-        # elif self.pass_vehicle_cmd_vel:
-        #     # self.publish_offboard_control_heartbeat_signal('velocity')
-        #     """Publish the trajectory setpoint."""
-        #     msg = TrajectorySetpoint()
-        #     msg.position = [float('nan'), float('nan'), -2.0]
-        #     msg.velocity = [0.0, 0.0, 0.0]
-        #     msg.yawspeed = 0.0
-        #     msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
-        #     self.trajectory_setpoint_publisher.publish(msg)
         elif not self.pass_vehicle_cmd_vel:
+            self.publish_offboard_control_heartbeat_signal('position')
             msg = TrajectorySetpoint()
             msg.position = [self.waypoint.y, self.waypoint.x, -self.waypoint.z]
             msg.yaw = -self.waypoint_yaw_deg / 180.0 * np.pi # (90 degree)
@@ -342,7 +358,7 @@ class OffboardControl(Node):
             msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
             self.trajectory_setpoint_publisher.publish(msg)
             dist = np.linalg.norm(self.vehicle_odometry.position - msg.position)
-            # yaw_diff_deg = 
+            # yaw_diff_deg =
             print(f"dist = {dist}")
             euler = Rotation.from_quat(self.vehicle_odometry.q).as_euler('xyz', degrees=True)
             print(f"yaw_diff = {euler[0] - 180.0 - self.waypoint_yaw_deg}")
@@ -350,10 +366,6 @@ class OffboardControl(Node):
                 np.abs(euler[0] - 180.0 - self.waypoint_yaw_deg) > 350.0):
                 # self.pass_vehicle_cmd_vel = True
                 pass
-
-
-        if self.offboard_setpoint_counter < 11:
-            self.offboard_setpoint_counter += 1
 
 
 def main(args=None) -> None:
